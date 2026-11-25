@@ -1,0 +1,127 @@
+#include"header.h"
+void macro(FILE *fp,FILE *fs)
+{
+	char a,macro_name[100][100],macro_body[100][100],t[10]="#define",ch[1000],s[100];
+	int i=0,j=0,len,flag1=0,flag=0,count=0,pos,flag2=0,c,f;
+	len=strlen(t);
+	while(1)
+	{
+		pos=ftell(fp);
+		if(fgets(ch,sizeof(ch),fp)==NULL)
+			break;
+		if(strncmp(t,ch,len)==0)
+		{
+			flag1=1;
+			fseek(fp,pos,SEEK_SET);
+			fseek(fp,len,SEEK_CUR);
+			fscanf(fp,"%s",macro_name[j]);
+			do
+			{
+				c=fgetc(fp);
+			}
+			while(c==' '||c=='\t');
+			i=0;
+			if(c=='"')
+			{
+				macro_body[j][i++]='"';
+				while((c=fgetc(fp))!=EOF&&c!='"')
+					macro_body[j][i++]=c;
+				if(c=='"')
+					macro_body[j][i++]=c;
+				macro_body[j][i]='\0';
+			}
+			else
+			{
+				do
+				{
+					macro_body[j][i++]=c;
+					c=fgetc(fp);
+				}
+				while(c!=EOF&&c!=' '&&c!='\t'&&c!='\n');
+				macro_body[j][i]='\0';
+			}
+			j++;
+			count++;
+			fgets(ch,sizeof(ch),fp);
+		}
+		else if(flag1==1)
+		{
+			int n=0,r=0;
+			for(i=0;ch[i]!='\0';i++)
+			{
+				if((ch[i]>='a'&&ch[i]<='z')||(ch[i]>='A'&&ch[i]<='Z')||(ch[i]>='0'&&ch[i]<='9')||ch[i]=='_')
+				{
+					s[n++]=ch[i];
+					s[n]='\0';
+				}
+				else if(ch[i]=='"')
+				{
+				l:
+					if(n>0)
+					{
+						fprintf(fs,"%s",s);
+						n=0;
+						s[0]='\0';
+					}
+					fputc(ch[i],fs);
+					i++;
+					while(ch[i]!='"'&&ch[i]!='\0')
+					{
+						fputc(ch[i],fs);
+						i++;
+					}
+					if(ch[i]=='"')
+						fputc(ch[i],fs);
+				}
+				else if(ch[i]=='(')
+				{
+				s[n++]=ch[i];
+				s[n]='\0';
+				if(ch[++i]=='"')
+				{
+				goto l;
+				}
+					while(ch[i]!=')')
+					s[n++]=ch[i++];
+					s[n++]=ch[i];
+					s[n]='\0';
+						for(f=0;f<count;f++)
+						{
+							if(strcmp(s,macro_name[f])==0)
+							{
+								fprintf(fs,"%s",macro_body[f]);
+								flag2=1;
+								break;
+							}
+						}
+						if(flag2==0)
+						fprintf(fs,"%s",s);
+						n=0;
+					
+				}
+				else
+				{
+					if(n>0)
+					{
+						flag=0;
+						for(f=0;f<count;f++)
+						{
+							if(strcmp(s,macro_name[f])==0)
+							{
+								fprintf(fs,"%s",macro_body[f]);
+								flag=1;
+								break;
+							}
+						}
+						if(flag==0)
+							fprintf(fs,"%s",s);
+					}
+					n=0;
+					fputc(ch[i],fs);
+				}
+			}
+		}
+		else
+		fputs(ch,fs);
+	}
+}
